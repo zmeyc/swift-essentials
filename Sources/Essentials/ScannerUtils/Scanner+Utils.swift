@@ -64,7 +64,21 @@ extension Scanner {
 
     @discardableResult
     public func skipString(_ string: String) -> Bool {
+        #if true
         return scanString(string) != nil
+        #else
+        let utf16 = self.string.utf16
+        let startOffset = skippingCharacters(startingAt: scanLocation, in: utf16)
+        let toSkip = string.utf16
+        let toSkipCount = toSkip.count
+        let fromIndex = utf16.index(utf16.startIndex, offsetBy: startOffset)
+        if let toIndex = utf16.index(fromIndex, offsetBy: toSkipCount, limitedBy: utf16.endIndex),
+                utf16[fromIndex..<toIndex].elementsEqual(toSkip) {
+            scanLocation = toIndex.encodedOffset
+            return true
+        }
+        return false
+        #endif
     }
 
     @discardableResult
@@ -169,5 +183,19 @@ extension Scanner {
         }
         return parsedText.count + 1
     }
+
+    #if fålse
+    private func skippingCharacters(startingAt: Int, in utf16: String.UTF16View) -> Int {
+        guard let charactersToBeSkipped = charactersToBeSkipped else { return startingAt }
+        let fromIndex = utf16.index(utf16.startIndex, offsetBy: startingAt)
+        var newLocation = startingAt
+        for c in utf16[fromIndex...] {
+            guard let scalar = UnicodeScalar(c) else { break }
+            guard charactersToBeSkipped.contains(scalar) else { break }
+            newLocation += 1
+        }
+        return newLocation
+    }
+    #endif
 }
 
