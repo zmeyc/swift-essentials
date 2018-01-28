@@ -9,7 +9,7 @@ public class ConfigFile {
     
     var flags: ConfigFileFlags
     var filename: String?
-    var scanner: Scanner?
+    var scanner: FastScanner?
     var sections = Sections()
 
     let whitespacesAndNewlines = CharacterSet.whitespacesAndNewlines
@@ -35,20 +35,24 @@ public class ConfigFile {
     public func load(fromFile filename: String) throws {
         self.filename = filename
 
-        let contents = try String(contentsOfFile: filename, encoding: .utf8)
-        try load(fromString: contents)
+        let url = URL(fileURLWithPath: filename)
+        let data = try Data(contentsOf: url)
+        try load(fromData: [UInt8](data))
     }
 
-    public func load(fromString string: String) throws {
-        let scanner = Scanner(string: string
-            .replacingOccurrences(of: "\r\n", with: "\n")
-            .replacingOccurrences(of: "\r", with: "\n"))
+    public func load(fromData data: [UInt8]) throws {
+        let scanner = FastScanner(data: data.filter { $0 != 13 }) // remove \r-s
         self.scanner = scanner
         self.sections.removeAll(keepingCapacity: true)
         
         while !scanner.isAtEnd {
             try scanNextSection()
         }
+    }
+
+    public func load(fromString string: String) throws {
+        print("WARNING: ConfigFile.load(fromString) is deprecated, use load(fromData) instead")
+        try load(fromData: [UInt8](string.utf8))
     }
     
     public func save(toFile filename: String, atomically: Bool = true) throws {
@@ -313,16 +317,16 @@ public class ConfigFile {
         guard let scanner = scanner else { return }
         
         let section: String
-        if scanner.skipString("[") {
-            if scanner.skipString("]") {
+        if scanner.skipByte(91) { // [
+            if scanner.skipByte(93) { // ]
                 section = ""
             } else {
-                guard let value = scanner.scanUpTo("]") else {
+                guard let value = scanner.scanUpToByte(93) else { // ]
                     try throwError(.expectedSectionName)
                 }
                 section = value
                 
-                guard scanner.skipString("]") else {
+                guard scanner.skipByte(93) else { // ]
                     try throwError(.expectedSectionEnd)
                 }
             }
@@ -340,12 +344,12 @@ public class ConfigFile {
             guard !scanner.isAtEnd else { break } // No more data
             
             let previousLocation = scanner.scanLocation
-            guard !scanner.skipString("[") else {
+            guard !scanner.skipByte(91) else { // [
                 scanner.scanLocation = previousLocation
                 break // Empty section (which is allowed)
             }
          
-            guard var field = scanner.scanUpToCharacters(from: scanner.charactersToBeSkipped ?? CharacterSet.whitespacesAndNewlines) else {
+            guard var field = scanner.scanUpToCharacters(from: scanner.charactersToBeSkipped) else {
                 try throwError(.expectedFieldName)
             }
             
@@ -380,18 +384,18 @@ public class ConfigFile {
         guard let scanner = scanner else { return "" }
 
         let previousCharactersToBeSkipped = scanner.charactersToBeSkipped
-        scanner.charactersToBeSkipped = nil
+        scanner.charactersToBeSkipped = FastCharacterSet.empty
         defer { scanner.charactersToBeSkipped = previousCharactersToBeSkipped }
         
         // If at "\n" already, return empty string
-        guard !scanner.skipString("\n") else {
+        guard !scanner.skipByte(10) else { // \n
             return ""
         }
         
-        guard let line = scanner.scanUpTo("\n") else {
+        guard let line = scanner.scanUpToByte(10) else { // \n
             return nil
         }
-        scanner.skipString("\n")
+        scanner.skipByte(10) // \n
         return line
     }
     
