@@ -75,4 +75,9 @@ public extension ConfigFile {
         get { return get(name) }
         set { set(name, newValue) }
     }
+    
+    subscript <T: OptionSet>(_ name: String) -> T? where T.RawValue: FixedWidthInteger, T.Element == T {
+        get { return get(name) }
+        set { set(name, newValue) }
+    }
 }

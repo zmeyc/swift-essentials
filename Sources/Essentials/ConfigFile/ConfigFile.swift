@@ -288,12 +288,17 @@ public class ConfigFile {
     public func set<T: OptionSet>(_ name: String, _ value: T?) where T.RawValue: FixedWidthInteger, T.Element == T {
         if let value = value {
             var out = "("
-            
-            value.elements().enumerated().forEach { (offset, element) in
-                if offset > 0 {
+
+            let rawValue = value.rawValue
+            var isFirst = true
+            for index in 0 ..< 64 {
+                guard (rawValue & (1 << UInt64(index))) != 0 else { continue }
+                if isFirst {
+                    isFirst = false
+                } else {
                     out += ", "
                 }
-                out += String(offset)
+                out += String(index)
             }
             out += ")"
 
