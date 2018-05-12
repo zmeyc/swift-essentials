@@ -233,7 +233,7 @@ public class ConfigFile {
     
     public func get<T: OptionSet>(_ name: String) -> T? where T.RawValue: FixedWidthInteger {
         guard let indexes = bitIndexes(name) else { return nil }
-        return T(bitIndexes: indexes)
+        return T(oneBasedBitIndexes: indexes)
     }
     
     public func delete(section: String) {
@@ -298,7 +298,7 @@ public class ConfigFile {
                 } else {
                     out += ", "
                 }
-                out += String(index)
+                out += String(index + 1)
             }
             out += ")"
 
