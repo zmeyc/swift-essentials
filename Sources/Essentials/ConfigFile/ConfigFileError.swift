@@ -40,3 +40,10 @@ struct ConfigFileError: Error, CustomStringConvertible {
         return "[\(line):\(column)] \(kind.description)"
     }
 }
+
+extension ConfigFileError: LocalizedError {
+    public var errorDescription: String? {
+        return description
+    }
+}
+
