@@ -80,7 +80,7 @@ public class FastScanner {
             result.append(byte)
             at += 1
         }
-        guard !result.isEmpty && byte == upToByte else { return nil }
+        guard !result.isEmpty && at < data.count else { return nil }
         
         scanLocation = at
         return String(bytes: result, encoding: .utf8) ?? ""
@@ -104,22 +104,37 @@ public class FastScanner {
         return String(bytes: result, encoding: .utf8) ?? ""
     }
 
-//    func scanUpTo(_ bytes: [UInt8]) -> String? {
-//        var at = offsetSkippingCharactersToSkip()
-//        guard at < data.count else { return nil }
-//
-//        if bytes.isEmpty {
-//            defer { scanLocation = data.count }
-//            return String(bytes: data[at...], encoding: .utf8) ?? ""
-//        }
-//        
-//        var result: String
-//    }
+    public func scanUpTo(_ bytes: [UInt8]) -> String? {
+        var at = offsetSkippingCharactersToSkip()
+        guard at < data.count else { return nil }
+
+        let isAtSubsequence = { (data: [UInt8], at: Int, subSequence: [UInt8]) -> Bool in
+            for (index, byte) in subSequence.enumerated() {
+                let dataOffset = at + index
+                guard dataOffset < data.count else { return false } // data is shorter
+                guard data[dataOffset] == byte else { return false }
+            }
+            return true
+        }
+        
+        var result: [UInt8] = []
+        var byte: UInt8 = 0
+        while at < data.count {
+            byte = data[at]
+            guard !isAtSubsequence(data, at, bytes) else { break }
+            result.append(byte)
+            at += 1
+        }
+        guard !result.isEmpty && at < data.count else { return nil }
+        
+        scanLocation = at
+        return String(bytes: result, encoding: .utf8) ?? ""
+    }
     
-//    func scanUpTo(_ string: String) -> String? {
-//        let bytes = [UInt8](string.utf8)
-//        return scanUpTo(bytes)
-//    }
+    public func scanUpTo(_ string: String) -> String? {
+        let bytes = [UInt8](string.utf8)
+        return scanUpTo(bytes)
+    }
     
     public func scanInt64() -> Int64? {
         var at = offsetSkippingCharactersToSkip()
